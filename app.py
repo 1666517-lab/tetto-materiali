@@ -1,7 +1,7 @@
 import streamlit as st
 import math
 from PIL import Image
-import google.generativeai as genai
+from google import genai
 import json
 
 # Configurazione pagina
@@ -27,7 +27,7 @@ if not st.session_state["autenticato"]:
 # --- APP PRINCIPALE ---
 st.title("⚡ Scanner Automatico Disegni Fotovoltaici")
 
-# Configurazione API Key (Inserisci la tua chiave gratuita di Google AI Studio)
+# Configurazione API Key (da Google AI Studio)
 API_KEY = st.sidebar.text_input("Chiave API Google Gemini (Gratuita)", type="password")
 
 # Parametri Standard
@@ -47,7 +47,6 @@ with col1:
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
         st.image(image, caption="Disegno Caricato", use_container_width=True)
-        
         analizza_btn = st.button("🔍 Scannerizza e Calcola Materiali")
 
 with col2:
@@ -55,27 +54,32 @@ with col2:
     
     if uploaded_file is not None and 'analizza_btn' in locals() and analizza_btn:
         if not API_KEY:
-            st.warning("⚠️ Per la scannerizzazione automatica inserisci la tua API Key nella barra a sinistra.")
+            st.warning("⚠️ Inserisci la tua API Key nella barra a sinistra.")
         else:
             with st.spinner("Scannerizzazione dell'immagine in corso con l'IA..."):
                 try:
-                    genai.configure(api_key=API_KEY)
-                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    # Inizializzazione del nuovo client ufficiale Google GenAI
+                    client = genai.Client(api_key=API_KEY)
 
                     prompt = """
                     Analizza questa immagine di un layout di impianto fotovoltaico su tetto.
-                    Rispondi ESCLUSIVAMENTE in formato JSON con la seguente struttura:
+                    Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza testo introduttivo o markdown aggiuntivo, con questa struttura esatta:
                     {
-                        "totale_pannelli": int,
+                        "totale_pannelli": 18,
                         "file": [
-                            {"numero_fila": 1, "pannelli_in_questa_fila": int},
-                            {"numero_fila": 2, "pannelli_in_questa_fila": int}
+                            {"numero_fila": 1, "pannelli_in_questa_fila": 6},
+                            {"numero_fila": 2, "pannelli_in_questa_fila": 6},
+                            {"numero_fila": 3, "pannelli_in_questa_fila": 6}
                         ]
                     }
-                    Conta accuratamente il numero totale di pannelli e come sono divisi nelle varie file/righe continuous.
+                    Conta accuratamente il numero totale di pannelli e individua come sono divisi nelle varie file/gruppi continui.
                     """
 
-                    response = model.generate_content([prompt, image])
+                    # Chiamata API con il nuovo modello gemini-2.5-flash
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=[image, prompt]
+                    )
                     
                     # Pulizia risposta JSON
                     clean_json = response.text.replace("```json", "").replace("```", "").strip()
@@ -86,16 +90,15 @@ with col2:
 
                     st.success(f"✅ Rilevati **{totale_pannelli} pannelli** nell'immagine!")
 
-                    # Calcolo profili e componenti per ogni fila identificata dall'IA
+                    # Calcolo profili e componenti per ogni fila identificata
                     metri_binario_totali = 0
                     morsetti_finali = 0
                     morsetti_centrali = 0
 
                     for fila in file_dettaglio:
                         n_p = fila["pannelli_in_questa_fila"]
-                        # Lunghezza della singola fila (assumendo pannelli affiancati sul lato corto)
                         lungh_fila = n_p * p_larg_m
-                        metri_binario_totali += (lungh_fila * 2) # 2 binari per fila
+                        metri_binario_totali += (lungh_fila * 2) # 2 binari paralleli per fila
                         
                         morsetti_finali += 4
                         morsetti_centrali += max(0, (n_p - 1) * 2)
