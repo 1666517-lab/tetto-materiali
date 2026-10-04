@@ -1,5 +1,6 @@
 import streamlit as st
 import math
+import os
 from PIL import Image
 from google import genai
 import json
@@ -7,30 +8,17 @@ import json
 # Configurazione pagina
 st.set_page_config(page_title="Scanner Fotovoltaico Automatico", layout="wide")
 
-# --- GESTIONE PASSWORD ---
-PASSWORD_CORRETTA = "fotovoltaico2024"
+# --- CHIAVE API NASCOSTA ---
+# Puoi inserire la tua API key direttamente qui fra le virgolette
+API_KEY_DI_DEFAULT = "LA_TUA_API_KEY_QUI" 
 
-if "autenticato" not in st.session_state:
-    st.session_state["autenticato"] = False
-
-if not st.session_state["autenticato"]:
-    st.title("🔒 Accesso Riservato")
-    password_inserita = st.text_input("Inserisci la password di accesso:", type="password")
-    if st.button("Accedi"):
-        if password_inserita == PASSWORD_CORRETTA:
-            st.session_state["autenticato"] = True
-            st.rerun()
-        else:
-            st.error("Password errata!")
-    st.stop()
+# Recupera la chiave dai secret di Streamlit, dalle variabili di ambiente o dalla riga sopra
+API_KEY = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY", API_KEY_DI_DEFAULT))
 
 # --- APP PRINCIPALE ---
 st.title("⚡ Scanner Automatico Disegni Fotovoltaici")
 
-# Configurazione API Key (da Google AI Studio)
-API_KEY = st.sidebar.text_input("Chiave API Google Gemini (Gratuita)", type="password")
-
-# Parametri Standard
+# Parametri Standard nella sidebar
 st.sidebar.header("⚙️ Dati Componenti")
 p_potenza = st.sidebar.number_input("Potenza Pannello (Wp)", value=455)
 p_larg_m = st.sidebar.number_input("Larghezza Pannello (m)", value=1.13)
@@ -41,7 +29,7 @@ vitoni_per_profilo = 3
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader("🖼️️ Carica Disegno Architetto")
+    st.subheader("🖼️ Carica Disegno Architetto")
     uploaded_file = st.file_uploader("Scegli un'immagine del tetto (JPG/PNG)", type=["jpg", "jpeg", "png"])
     
     if uploaded_file is not None:
@@ -53,17 +41,17 @@ with col2:
     st.subheader("📊 Analisi Automatica e Materiali")
     
     if uploaded_file is not None and 'analizza_btn' in locals() and analizza_btn:
-        if not API_KEY:
-            st.warning("⚠️ Inserisci la tua API Key nella barra a sinistra.")
+        if not API_KEY or API_KEY == "LA_TUA_API_KEY_QUI":
+            st.error("⚠️ Chiave API non configurata! Inserisci la tua API Key nel file app.py o nei Secrets di Streamlit.")
         else:
-            with st.spinner("Scannerizzazione dell'immagine in corso con l'IA..."):
+            with st.spinner("Scannerizzazione dell'immagine in corso con l'IA (Gemini 3.8 Flash)..."):
                 try:
-                    # Inizializzazione del client Google GenAI
+                    # Inizializzazione del client GenAI con la chiave nascosta
                     client = genai.Client(api_key=API_KEY)
 
                     prompt = """
                     Analizza questa immagine di un layout di impianto fotovoltaico su tetto.
-                    Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza testo di introduzione o markdown, con questa struttura esatta:
+                    Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza blocchi di codice markdown, con questa struttura esatta:
                     {
                         "totale_pannelli": 18,
                         "file": [
@@ -72,17 +60,19 @@ with col2:
                             {"numero_fila": 3, "pannelli_in_questa_fila": 6}
                         ]
                     }
-                    Conta accuratamente il numero totale di pannelli e individua come sono divisi nelle varie file/gruppi continui.
+                    Conta accuratamente il numero totale di pannelli e individua come sono divisi nelle varie file/gruppi continui orientati.
                     """
 
-                    # Utilizzo del modello stabile gemini-2.0-flash
-                    response = client.models.generate_content(
-                        model='gemini-2.0-flash',
-                        contents=[image, prompt]
+                    # Utilizzo della nuova Interactions API e del modello gemini-3.8-flash
+                    interaction = client.interactions.create(
+                        model='gemini-3.8-flash',
+                        input=[image, prompt]
                     )
                     
-                    # Pulizia risposta JSON
-                    clean_json = response.text.replace("```json", "").replace("```", "").strip()
+                    testo_risposta = interaction.output_text
+                    
+                    # Pulizia da eventuale formattazione markdown
+                    clean_json = testo_risposta.replace("```json", "").replace("```", "").strip()
                     dati = json.loads(clean_json)
 
                     totale_pannelli = dati["totale_pannelli"]
