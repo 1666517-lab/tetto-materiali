@@ -10,7 +10,7 @@ st.set_page_config(page_title="Scanner Fotovoltaico Automatico", layout="wide")
 
 # --- CHIAVE API NASCOSTA ---
 # Puoi inserire la tua API key direttamente qui fra le virgolette
-API_KEY_DI_DEFAULT = "LA_TUA_API_KEY_QUI" 
+API_KEY_DI_DEFAULT = "AQ.Ab8RN6J3B7QlzePrfr_P2B5D9UdyhawhjhoB239zV_69Kqi60A" 
 
 # Recupera la chiave dai secret di Streamlit, dalle variabili di ambiente o dalla riga sopra
 API_KEY = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY", API_KEY_DI_DEFAULT))
