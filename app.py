@@ -9,7 +9,7 @@ st.set_page_config(page_title="Scanner Fotovoltaico Automatico", layout="wide")
 # ==============================================================================
 # DATI E CONFIGURAZIONE HARDCODED
 # ==============================================================================
-API_KEY = "INSERISCI_QUI_LA_TUA_API_KEY"  # Sostituisci con la tua chiave reale
+API_KEY = "AQ.Ab8RN6J3B7QlzePrfr_P2B5D9UdyhawhjhoB239zV_69Kqi60A"  # Sostituisci con la tua chiave reale
 
 # Parametri standard componenti
 P_POTENZA_WP = 455            # Potenza del pannello ZS.455W in Watt
