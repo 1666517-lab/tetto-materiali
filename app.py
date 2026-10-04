@@ -41,7 +41,7 @@ vitoni_per_profilo = 3
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader("🖼️ Carica Disegno Architetto")
+    st.subheader("🖼️️ Carica Disegno Architetto")
     uploaded_file = st.file_uploader("Scegli un'immagine del tetto (JPG/PNG)", type=["jpg", "jpeg", "png"])
     
     if uploaded_file is not None:
@@ -58,12 +58,12 @@ with col2:
         else:
             with st.spinner("Scannerizzazione dell'immagine in corso con l'IA..."):
                 try:
-                    # Inizializzazione del nuovo client ufficiale Google GenAI
+                    # Inizializzazione del client Google GenAI
                     client = genai.Client(api_key=API_KEY)
 
                     prompt = """
                     Analizza questa immagine di un layout di impianto fotovoltaico su tetto.
-                    Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza testo introduttivo o markdown aggiuntivo, con questa struttura esatta:
+                    Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza testo di introduzione o markdown, con questa struttura esatta:
                     {
                         "totale_pannelli": 18,
                         "file": [
@@ -75,9 +75,9 @@ with col2:
                     Conta accuratamente il numero totale di pannelli e individua come sono divisi nelle varie file/gruppi continui.
                     """
 
-                    # Chiamata API con il nuovo modello gemini-2.5-flash
+                    # Utilizzo del modello stabile gemini-2.0-flash
                     response = client.models.generate_content(
-                        model='gemini-2.5-flash',
+                        model='gemini-2.0-flash',
                         contents=[image, prompt]
                     )
                     
