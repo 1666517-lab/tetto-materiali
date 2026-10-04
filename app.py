@@ -1,8 +1,7 @@
 import streamlit as st
 import math
-from PIL import Image
-from google import genai
 import json
+from google import genai
 
 # Configurazione della pagina
 st.set_page_config(page_title="Scanner Fotovoltaico Automatico", layout="wide")
@@ -10,7 +9,7 @@ st.set_page_config(page_title="Scanner Fotovoltaico Automatico", layout="wide")
 # ==============================================================================
 # DATI E CONFIGURAZIONE HARDCODED
 # ==============================================================================
-API_KEY = "AQ.Ab8RN6J3B7QlzePrfr_P2B5D9UdyhawhjhoB239zV_69Kqi60A"  # Sostituisci con la tua chiave reale
+API_KEY = "INSERISCI_QUI_LA_TUA_API_KEY"  # Sostituisci con la tua chiave reale
 
 # Parametri standard componenti
 P_POTENZA_WP = 455            # Potenza del pannello ZS.455W in Watt
@@ -30,8 +29,7 @@ with col1:
     uploaded_file = st.file_uploader("Carica immagine (JPG / PNG)", type=["jpg", "jpeg", "png"])
     
     if uploaded_file is not None:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Disegno Tetto Caricato", use_container_width=True)
+        st.image(uploaded_file, caption="Disegno Tetto Caricato", use_container_width=True)
         analizza_btn = st.button("🔍 Scannerizza e Calcola Materiali", type="primary")
 
 with col2:
@@ -41,14 +39,25 @@ with col2:
         if API_KEY == "INSERISCI_QUI_LA_TUA_API_KEY" or not API_KEY:
             st.error("⚠️ Sostituisci 'INSERISCI_QUI_LA_TUA_API_KEY' nel codice 'app.py' con la tua chiave reale di Google Gemini.")
         else:
-            with st.spinner("Scannerizzazione e analisi dell'immagine in corso..."):
+            with st.spinner("Scannerizzazione e analisi dell'immagine con l'IA in corso..."):
                 try:
                     # Inizializzazione del client Google GenAI
                     client = genai.Client(api_key=API_KEY)
 
+                    # Lettura immagine in bytes e conversione per l'API (evita errori di validazione Pydantic)
+                    image_bytes = uploaded_file.getvalue()
+                    mime_type = uploaded_file.type
+                    
+                    image_part = {
+                        "inline_data": {
+                            "data": image_bytes,
+                            "mime_type": mime_type
+                        }
+                    }
+
                     prompt = """
                     Analizza questa immagine di un layout di impianto fotovoltaico su tetto.
-                    Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza blocchi di testo o formattazione markdown, con questa struttura esatta:
+                    Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza blocchi di testo o formattazione markdown (senza ```json), con questa struttura esatta:
                     {
                         "totale_pannelli": 18,
                         "file": [
@@ -60,10 +69,10 @@ with col2:
                     Conta con precisione tutti i pannelli visibili nell'immagine e individua la suddivisione per ciascuna fila o gruppo continuo.
                     """
 
-                    # Chiamata corretta tramite client.models.generate_content
+                    # Uso dell'alias stabile gemini-1.5-flash perfettamente compatibile
                     response = client.models.generate_content(
-                        model='gemini-2.5-flash',
-                        contents=[image, prompt]
+                        model='gemini-1.5-flash',
+                        contents=[image_part, prompt]
                     )
                     
                     testo_risposta = response.text.strip()
